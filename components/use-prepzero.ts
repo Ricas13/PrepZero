@@ -1,24 +1,29 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { defaultProfile, generateWeeklyPlan, UserProfile, WeeklyPlan } from "../lib/prepzero";
+import { defaultProfile, generateWeeklyPlan, normalizeProfile, UserProfile, WeeklyPlan } from "../lib/prepzero";
 
 const PROFILE_KEY = "prepzero.profile.v1";
 const SHOPPING_KEY = "prepzero.shopping.checked.v1";
+const ONBOARDED_KEY = "prepzero.onboarded";
 
 export function usePrepZero() {
   const [profile, setProfileState] = useState<UserProfile>(defaultProfile);
   const [hydrated, setHydrated] = useState(false);
+  const [onboarded, setOnboarded] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PROFILE_KEY);
-      if (raw) setProfileState({ ...defaultProfile, ...JSON.parse(raw) });
+      if (raw) setProfileState(normalizeProfile(JSON.parse(raw)));
       const checked = localStorage.getItem(SHOPPING_KEY);
       if (checked) setCheckedItems(JSON.parse(checked));
+      setOnboarded(localStorage.getItem(ONBOARDED_KEY) === "1");
     } catch {
-      // Keep safe defaults if browser storage is unavailable or corrupt.
+      setProfileState(defaultProfile);
+      setCheckedItems({});
+      setOnboarded(false);
     }
     setHydrated(true);
   }, []);
@@ -26,10 +31,14 @@ export function usePrepZero() {
   const plan: WeeklyPlan = useMemo(() => generateWeeklyPlan(profile), [profile]);
 
   function saveProfile(next: UserProfile) {
-    setProfileState(next);
+    const normalized = normalizeProfile(next);
+    setProfileState(normalized);
+    setOnboarded(true);
+    setCheckedItems({});
     try {
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
-      localStorage.setItem("prepzero.onboarded", "1");
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(normalized));
+      localStorage.setItem(ONBOARDED_KEY, "1");
+      localStorage.removeItem(SHOPPING_KEY);
     } catch {}
   }
 
@@ -48,5 +57,5 @@ export function usePrepZero() {
     } catch {}
   }
 
-  return { profile, plan, hydrated, saveProfile, checkedItems, toggleShoppingItem, resetShopping };
+  return { profile, plan, hydrated, onboarded, saveProfile, checkedItems, toggleShoppingItem, resetShopping };
 }
