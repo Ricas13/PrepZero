@@ -62,7 +62,7 @@ export default function DashboardPage() {
               <h3>{meal.name}</h3>
               <p>{meal.description}</p>
               <div className="meal-stat-row"><span><strong>{meal.calories}</strong> kcal</span><span><strong>{meal.protein}g</strong> protein</span><span><strong>{meal.fibre}g</strong> fibre</span></div>
-              <div className="meal-card-foot"><span>{money(recipePortionCost(meal))} ingredient value / portion</span><Link href={`/recipes#${meal.id}`}>View recipe →</Link></div>
+              <div className="meal-card-foot"><span>{money(recipePortionCost(meal))} ingredient value / portion</span><Link href={`/recipes#${meal.catalogueId}`}>View recipe →</Link></div>
             </article>
           )) : <div className="empty-state"><strong>No compatible meals yet.</strong><span>Review your food exclusions or expand the recipe catalogue.</span></div>}
         </div>
@@ -71,7 +71,7 @@ export default function DashboardPage() {
       <section className="portal-grid-two">
         <article className="portal-panel">
           <div className="portal-section-head compact"><div><span className="card-kicker">NEXT PREP</span><h2>{plan.prep[0]?.title || "No prep available"}</h2></div><Link href="/prep">Open prep →</Link></div>
-          <div className="prep-summary"><span className="prep-clock">{plan.prep[0]?.minutes || 0}<small>min</small></span><div>{plan.prep[0]?.recipes.slice(0, 3).map((recipe) => <p key={recipe.name}><strong>{recipe.portions}×</strong> {recipe.name}</p>)}</div></div>
+          <div className="prep-summary"><span className="prep-clock">{plan.prep[0]?.minutes || 0}<small>min</small></span><div>{plan.prep[0]?.recipes.slice(0, 3).map((recipe) => <p key={recipe.id}><strong>{recipe.portions}×</strong> {recipe.name}</p>)}</div></div>
           <div className="zero-fuss-line">✓ Every selected batch is divided into exactly the portions the seven-day plan uses</div>
         </article>
 
