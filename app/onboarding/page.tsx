@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { calculateTargets, defaultProfile, type UserProfile } from "../../lib/prepzero";
+import { calculateTargets, defaultProfile, normalizeProfile, type UserProfile } from "../../lib/prepzero";
 import { usePrepZero } from "../../components/use-prepzero";
 
 const activities = [
@@ -15,19 +15,30 @@ const activities = [
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { profile: saved, saveProfile } = usePrepZero();
+  const { profile: saved, saveProfile, hydrated } = usePrepZero();
   const [step, setStep] = useState(0);
-  const [profile, setProfile] = useState<UserProfile>({ ...defaultProfile, ...saved });
+  const [profile, setProfile] = useState<UserProfile>(defaultProfile);
+  const [synced, setSynced] = useState(false);
+
+  useEffect(() => {
+    if (!hydrated || synced) return;
+    setProfile(normalizeProfile(saved));
+    setSynced(true);
+  }, [hydrated, saved, synced]);
+
   const targets = useMemo(() => calculateTargets(profile), [profile]);
+  const bodyValid = profile.age >= 18 && profile.age <= 90 && profile.heightCm >= 130 && profile.heightCm <= 230 && profile.weightKg >= 35 && profile.weightKg <= 300;
 
   function patch(next: Partial<UserProfile>) {
-    setProfile((p) => ({ ...p, ...next }));
+    setProfile((current) => ({ ...current, ...next }));
   }
 
   function finish() {
-    saveProfile(profile);
+    saveProfile(normalizeProfile(profile));
     router.push("/dashboard");
   }
+
+  if (!hydrated || !synced) return <div className="portal-loading">Loading your profile…</div>;
 
   return (
     <main className="onboarding-page">
@@ -50,9 +61,10 @@ export default function OnboardingPage() {
               <label><span>Name</span><input value={profile.name} onChange={(e) => patch({ name: e.target.value })} placeholder="Ricardo" /></label>
               <label><span>Sex</span><select value={profile.sex} onChange={(e) => patch({ sex: e.target.value as UserProfile["sex"] })}><option value="male">Male</option><option value="female">Female</option></select></label>
               <label><span>Age</span><input type="number" min="18" max="90" value={profile.age} onChange={(e) => patch({ age: Number(e.target.value) })} /></label>
-              <label><span>Height (cm)</span><input type="number" min="140" max="220" value={profile.heightCm} onChange={(e) => patch({ heightCm: Number(e.target.value) })} /></label>
-              <label><span>Weight (kg)</span><input type="number" min="40" max="250" step="0.1" value={profile.weightKg} onChange={(e) => patch({ weightKg: Number(e.target.value) })} /></label>
+              <label><span>Height (cm)</span><input type="number" min="130" max="230" value={profile.heightCm} onChange={(e) => patch({ heightCm: Number(e.target.value) })} /></label>
+              <label><span>Weight (kg)</span><input type="number" min="35" max="300" step="0.1" value={profile.weightKg} onChange={(e) => patch({ weightKg: Number(e.target.value) })} /></label>
             </div>
+            {!bodyValid && <p className="form-error">Please enter an age, height and weight within the supported ranges before continuing.</p>}
           </section>
         )}
 
@@ -63,9 +75,9 @@ export default function OnboardingPage() {
             <p>Macros stay sensible. PrepZero then finds the lowest-friction way to hit them.</p>
             <div className="choice-grid three">
               {([
-                ["cut", "Cut", "Lose fat steadily", "−450 kcal/day"],
+                ["cut", "Cut", "Lose fat steadily", "~15% below maintenance"],
                 ["maintain", "Maintain", "Keep body weight stable", "Maintenance calories"],
-                ["bulk", "Gain", "Build with a modest surplus", "+300 kcal/day"],
+                ["bulk", "Gain", "Build with a modest surplus", "~8% above maintenance"],
               ] as const).map(([value, title, body, meta]) => (
                 <button key={value} className={profile.goal === value ? "choice-card selected" : "choice-card"} onClick={() => patch({ goal: value })}>
                   <strong>{title}</strong><span>{body}</span><small>{meta}</small>
@@ -92,10 +104,10 @@ export default function OnboardingPage() {
               <label><span>Meals per day</span><select value={profile.mealsPerDay} onChange={(e) => patch({ mealsPerDay: Number(e.target.value) as 3 | 4 })}><option value="3">3 meals</option><option value="4">3 meals + snack</option></select></label>
               <label><span>Supermarket</span><select value={profile.supermarket} disabled><option>Aldi</option></select><small>Aldi is the launch catalogue. More supermarkets come next.</small></label>
               <label><span>Diet</span><select value={profile.diet} onChange={(e) => patch({ diet: e.target.value as UserProfile["diet"] })}><option value="everything">I eat everything</option><option value="vegetarian">Vegetarian</option></select></label>
-              <label><span>Allergies</span><input value={profile.allergies} onChange={(e) => patch({ allergies: e.target.value })} placeholder="e.g. peanuts, shellfish" /><small>Comma-separated is fine.</small></label>
+              <label><span>Allergies</span><input value={profile.allergies} onChange={(e) => patch({ allergies: e.target.value })} placeholder="e.g. peanuts, shellfish" /><small>Comma-separated is fine. Always verify product labels.</small></label>
               <label className="full"><span>Foods you really dislike</span><input value={profile.dislikes} onChange={(e) => patch({ dislikes: e.target.value })} placeholder="e.g. mushrooms, tuna" /></label>
             </div>
-            <div className="zero-fuss-banner"><strong>Zero-fuss is always on.</strong><span>Whole packs, countable ingredients, batch cooking, no portion scales and as little leftover food as possible.</span></div>
+            <div className="zero-fuss-banner"><strong>Zero-fuss is always on.</strong><span>Whole packs or obvious pack fractions, countable ingredients, exact batch portions, minimal waste and no portion scales.</span></div>
           </section>
         )}
 
@@ -107,20 +119,20 @@ export default function OnboardingPage() {
             <div className="target-grid">
               <div><small>Daily calories</small><strong>{targets.calories.toLocaleString()}</strong><span>kcal</span></div>
               <div><small>Protein minimum</small><strong>{targets.protein}</strong><span>g / day</span></div>
-              <div><small>Fat minimum</small><strong>{targets.fat}</strong><span>g / day</span></div>
+              <div><small>Fat guide</small><strong>{targets.fat}</strong><span>g / day</span></div>
               <div><small>Fibre target</small><strong>{targets.fibre}</strong><span>g / day</span></div>
             </div>
             <div className="calculation-note"><span>◎</span><div><strong>Estimated maintenance: {targets.maintenance.toLocaleString()} kcal</strong><p>BMR {targets.bmr.toLocaleString()} kcal · {profile.goal === "cut" ? "moderate deficit applied" : profile.goal === "bulk" ? "modest surplus applied" : "maintenance target"}</p></div></div>
             <div className="promise-panel">
               <strong>What PrepZero will now do</strong>
-              <ul><li>Keep calories close to target and protein at or above target</li><li>Prefer filling, fibre-rich meals</li><li>Build around actual Aldi pack sizes</li><li>Minimise basket cost, waste and prep time</li><li>Tell you how many equal portions to divide every batch into</li></ul>
+              <ul><li>Keep weekly calories close to target and protein at or above target where the recipe catalogue allows</li><li>Prefer filling, fibre-rich meals</li><li>Aggregate ingredient use across the whole week before buying packs</li><li>Minimise basket cost, at-risk leftovers and prep time</li><li>Only select batch sizes whose portions are fully used during the seven-day plan</li></ul>
             </div>
           </section>
         )}
 
         <div className="onboarding-actions">
-          <button className="button-ghost" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))}>← Back</button>
-          {step < 3 ? <button className="button" onClick={() => setStep((s) => Math.min(3, s + 1))}>Continue →</button> : <button className="button" onClick={finish}>Build my first week →</button>}
+          <button className="button-ghost" disabled={step === 0} onClick={() => setStep((current) => Math.max(0, current - 1))}>← Back</button>
+          {step < 3 ? <button className="button" disabled={step === 0 && !bodyValid} onClick={() => setStep((current) => Math.min(3, current + 1))}>Continue →</button> : <button className="button" onClick={finish}>Build my first week →</button>}
         </div>
       </div>
     </main>
