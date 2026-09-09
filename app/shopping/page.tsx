@@ -1,12 +1,14 @@
 "use client";
 
 import { AppShell } from "../../components/app-shell";
+import { OnboardingRequired } from "../../components/onboarding-required";
 import { usePrepZero } from "../../components/use-prepzero";
 import { formatPackAmount, money } from "../../lib/prepzero";
 
 export default function ShoppingPage() {
-  const { plan, hydrated, checkedItems, toggleShoppingItem, resetShopping } = usePrepZero();
+  const { plan, hydrated, onboarded, checkedItems, toggleShoppingItem, resetShopping } = usePrepZero();
   if (!hydrated) return <div className="portal-loading">Loading shopping list…</div>;
+  if (!onboarded) return <OnboardingRequired title="Shopping list" />;
 
   const grouped = plan.shopping.reduce<Record<string, typeof plan.shopping>>((acc, item) => {
     (acc[item.aisle] ||= []).push(item);
