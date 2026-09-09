@@ -45,7 +45,7 @@ export default function PlanPage() {
                 <p>{meal.description}</p>
                 <div className="meal-stat-row"><span><strong>{meal.calories}</strong> kcal</span><span><strong>{meal.protein}g</strong> protein</span><span><strong>{meal.fibre}g</strong> fibre</span><span><strong>{meal.volume}/10</strong> volume</span></div>
               </div>
-              <div className="plan-meal-action"><strong>{meal.batchSize} portions / batch</strong><span>Every portion from this batch is used this week</span><a href={`/recipes#${meal.id}`}>Recipe →</a></div>
+              <div className="plan-meal-action"><strong>{meal.batchSize} portions / batch</strong><span>Every portion from this batch is used this week</span><a href={`/recipes#${meal.catalogueId}`}>Recipe →</a></div>
             </article>
           ))}
         </div>
