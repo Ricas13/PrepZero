@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./portal.css";
+import "./hardening.css";
 
 export const metadata: Metadata = {
   title: "PrepZero — Buy it. Cook it. Divide it. Done.",
