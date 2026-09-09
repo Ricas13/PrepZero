@@ -29,9 +29,9 @@ export default function PrepPage() {
               </div>
               <div className="prep-recipes">
                 {session.recipes.map((item) => {
-                  const recipe = plan.selectedRecipes.find((candidate) => candidate.name === item.name);
+                  const recipe = plan.selectedRecipes.find((candidate) => candidate.id === item.id);
                   return (
-                    <article className="prep-recipe-card" key={item.name}>
+                    <article className="prep-recipe-card" key={item.id}>
                       <div className="prep-recipe-title"><div><span className="meal-type-badge">{recipe?.category || "meal"}</span><h3>{item.name}</h3></div><span className="portion-badge">{item.portions} portions</span></div>
                       {recipe && <ol>{recipe.method.map((step, index) => <li key={index}><span>{index + 1}</span>{step}</li>)}</ol>}
                       <div className="divide-callout"><span className="divide-big">÷{item.portions}</span><div><strong>Final step: divide evenly</strong><p>{item.instruction} No portion weighing needed.</p></div></div>
